@@ -434,13 +434,14 @@
         r.st = sab.noWobble ? 'fall' : 'wobble';
         r.t = 0;
         r.wob = 0;
+        if (r.st === 'fall') M.grid[idx(r.x, r.y)] = 1;
         emit(r.st === 'fall' ? 'rockFall' : 'wobble', { r: r.k });
         return;
       }
       if (r.st === 'wobble') {
         r.t += dt;
         r.wob = r.t;
-        if (r.t >= M.D.wobbleT) { r.st = 'fall'; r.t = 0; emit('rockFall', { r: r.k }); }
+        if (r.t >= M.D.wobbleT) { r.st = 'fall'; r.t = 0; M.grid[idx(r.x, r.y)] = 1; emit('rockFall', { r: r.k }); } // it leaves a hole
         return;
       }
       if (r.st === 'fall') {

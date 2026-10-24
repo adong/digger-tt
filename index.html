@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#5ec8ff">
+<title>TT Digger · Teddy &amp; Tommy</title>
+<!-- The game's icon: the same emoji as its card on the dashboard, on a coloured tile. It's the browser tab's icon (the SVG, then
+     a PNG drawn below) and the iPad home screen's (apple-touch-icon). The device's own emoji font draws it: no image files. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20x='2'%20y='2'%20width='60'%20height='60'%20rx='14'%20fill='%23f6a35c'%20stroke='%2314121f'%20stroke-width='4'/%3E%3Ctext%20x='32'%20y='44'%20font-size='36'%20text-anchor='middle'%3E%F0%9F%AA%8F%3C/text%3E%3C/svg%3E">
+<script>
+  (function (emoji, tile) {
+    function draw(size, framed) {
+      const c = document.createElement('canvas');
+      c.width = c.height = size;
+      const g = c.getContext('2d');
+      if (!g) return '';
+      const u = size / 64;
+      g.fillStyle = tile;
+      if (framed) { // the tab: a rounded tile with the dashboard's dark outline
+        g.beginPath();
+        if (g.roundRect) g.roundRect(2 * u, 2 * u, 60 * u, 60 * u, 14 * u); else g.rect(2 * u, 2 * u, 60 * u, 60 * u);
+        g.fill();
+        g.lineWidth = 4 * u;
+        g.strokeStyle = '#14121f';
+        g.stroke();
+      } else g.fillRect(0, 0, size, size); // the home screen: iOS rounds the corners itself
+      g.font = `${Math.round(size * (framed ? 0.56 : 0.62))}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+      g.textAlign = 'center';
+      const m = g.measureText(emoji);
+      const up = m.actualBoundingBoxAscent || size * 0.4, down = m.actualBoundingBoxDescent || 0;
+      g.fillText(emoji, size / 2, size / 2 + (up - down) / 2);
+      try { return c.toDataURL('image/png'); } catch (e) { return ''; }
+    }
+    const tab = draw(64, true), home = draw(180, false);
+    if (tab) document.querySelector('link[rel="icon"]').href = tab;
+    if (home) {
+      const l = document.createElement('link');
+      l.rel = 'apple-touch-icon';
+      l.href = home;
+      document.head.appendChild(l);
+    }
+  })('🪏', '#f6a35c');
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --yellow: #ffd400;
+    --pink: #ff3d7f;
+    --cyan: #18d4ff;
+    --blue: #3d8bff;
+    --red: #ff4b5c;
+    --green: #2fc27a;
+    --earth: #f6a35c;
+    --dirt: #c4683f;
+    --ink: #14121f;
+    --display: 'Bungee', 'Arial Black', Impact, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #5ec8ff; color: #fff;
+    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
+    touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .hidden { opacity: 0 !important; pointer-events: none !important; visibility: hidden; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+  /* ---------- HUD ---------- */
+  #hud { position: fixed; inset: 0; pointer-events: none; }
+  .bars {
+    position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: flex-start; gap: 10px;
+    padding: max(8px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 0 max(14px, env(safe-area-inset-left));
+  }
+  .pb { flex: 1; display: flex; gap: 9px; align-items: center; min-width: 0; }
+  .pb.right { flex-direction: row-reverse; }
+  .face {
+    flex: none; width: 56px; height: 56px; border-radius: 16px; overflow: hidden; border: 3px solid #fff; pointer-events: auto;
+    background: radial-gradient(circle at 50% 35%, #a5dcff, #2a7bd6); box-shadow: 0 4px 0 var(--ink);
+  }
+  .right .face { background: radial-gradient(circle at 50% 35%, #ffc0c8, #d6334a); }
+  .face img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.15) translateY(4%); }
+  .pb.out .face { filter: grayscale(0.9); }
+  .pb.five .face { animation: hop 0.5s ease-out; border-color: var(--yellow); }
+  .col { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .right .col { align-items: flex-end; }
+  .nm { font-family: var(--display); font-size: 18px; line-height: 1; -webkit-text-stroke: 1.5px var(--ink); paint-order: stroke fill; text-shadow: 0 2px 0 var(--ink); }
+  .pts { font: 800 13px/1 'Rubik', sans-serif; padding: 3px 8px; border-radius: 999px; background: rgba(20, 18, 31, 0.55); border: 2px solid rgba(255, 255, 255, 0.6); font-variant-numeric: tabular-nums; }
+  .mid { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 170px; }
+  .chip {
+    font-family: var(--display); font-size: 14px; letter-spacing: 1px; padding: 4px 11px; border-radius: 999px; white-space: nowrap;
+    background: rgba(20, 18, 31, 0.6); border: 2px solid rgba(255, 255, 255, 0.75);
+  }
+  .toprow { display: flex; gap: 6px; align-items: center; }
+  #hearts { font-size: 18px; line-height: 1; letter-spacing: -1px; min-height: 18px; filter: drop-shadow(0 2px 0 var(--ink)); }
+  #hearts.hit { animation: nope 0.4s linear 2; }
+  .scores { display: flex; gap: 10px; font: 800 13px/1 'Rubik', sans-serif; letter-spacing: 0.5px; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85); font-variant-numeric: tabular-nums; }
+  #hi { color: var(--yellow); }
+  .ibtns { display: flex; gap: 6px; pointer-events: auto; }
+  .ibtn { width: 34px; height: 34px; border-radius: 10px; font-size: 15px; line-height: 1; background: rgba(20, 18, 31, 0.5); border: 2px solid rgba(255, 255, 255, 0.75); display: grid; place-items: center; }
+  #toasts { position: absolute; left: 0; right: 0; bottom: 22%; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+  .toast {
+    font-family: var(--display); font-size: clamp(16px, 3vw, 28px); color: #fff; padding: 4px 16px; border-radius: 16px; text-align: center;
+    -webkit-text-stroke: 1.5px var(--ink); paint-order: stroke fill; text-shadow: 0 3px 0 var(--ink);
+    background: rgba(20, 18, 31, 0.4); animation: toast 2s ease-out forwards; max-width: 92vw;
+  }
+  .toast.good { color: var(--yellow); }
+  .toast.buddy { color: var(--cyan); font-size: clamp(18px, 3.6vw, 34px); }
+  .toast.oops { color: #ffb0c8; }
+  @keyframes toast {
+    0% { opacity: 0; transform: scale(1.8); }
+    10% { opacity: 1; transform: scale(0.95); }
+    18%, 78% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: translateY(-24px); }
+  }
+  .banner {
+    position: absolute; left: 0; right: 0; top: 34%; text-align: center; font-family: var(--display); opacity: 0;
+    font-size: clamp(40px, 9vw, 100px); line-height: 1; color: var(--yellow); padding: 0 12px;
+    -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill;
+    text-shadow: 0 7px 0 var(--dirt), 0 12px 0 var(--ink), 0 20px 30px rgba(0, 0, 0, 0.35);
+    transition: opacity 0.25s;
+  }
+  .banner small { display: block; font-size: 0.34em; margin-top: 10px; color: #fff; -webkit-text-stroke: 2px var(--ink); text-shadow: 0 4px 0 var(--ink); }
+  .banner.show { opacity: 1; animation: slam 0.45s cubic-bezier(.2, 1.6, .4, 1); }
+  .banner.win { color: var(--cyan); top: 16%; text-shadow: 0 6px 0 var(--yellow), 0 11px 0 var(--ink); }
+  @keyframes slam { from { transform: scale(2.4) rotate(-8deg); opacity: 0; } }
+  @keyframes pulse { 50% { transform: scale(1.08); } }
+  @keyframes nope { 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
+  @keyframes hop { 40% { transform: translateY(-10px) scale(1.1); } }
+
+  /* ---------- the companion button: big, with his face ---------- */
+  .budbtn {
+    position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); width: 96px; height: 96px; padding: 0; border-radius: 50%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; pointer-events: auto;
+    background: radial-gradient(circle at 50% 35%, #ffe2a0, #ff9f1c); border: 4px solid #fff; box-shadow: 0 6px 0 var(--ink);
+  }
+  .budbtn img { width: 78px; height: 78px; border-radius: 50%; object-fit: cover; }
+  .budbtn small { position: absolute; bottom: 6px; left: 0; right: 0; font: 800 10px/1 'Rubik', sans-serif; letter-spacing: 1px; text-shadow: 0 1px 2px var(--ink), 0 0 4px var(--ink); }
+  .budbtn kbd { position: absolute; top: 7px; right: 12px; min-width: 18px; height: 18px; font-size: 10px; }
+  .touch .budbtn kbd { display: none; }
+  .budbtn.on { border-color: var(--yellow); box-shadow: 0 6px 0 var(--ink), 0 0 24px rgba(255, 212, 0, 0.95); }
+  .budbtn.down { transform: translateY(5px); box-shadow: 0 1px 0 var(--ink); }
+
+  /* ---------- touch: a pad to dig with and a big pump button for each player ---------- */
+  #touch { position: fixed; inset: 0; pointer-events: none; display: none; }
+  .touch #touch { display: block; }
+  .pad {
+    position: absolute; bottom: max(16px, env(safe-area-inset-bottom)); width: 150px; height: 150px; border-radius: 50%; pointer-events: auto; touch-action: none;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.3), rgba(20, 18, 31, 0.45)); border: 4px solid rgba(255, 255, 255, 0.85);
+  }
+  #pad0 { left: max(64px, env(safe-area-inset-left)); }
+  #pad1 { right: max(16px, env(safe-area-inset-right)); display: none; }
+  .two #pad1 { display: block; }
+  .pad .ar { position: absolute; font-size: 24px; opacity: 0.85; text-shadow: 0 2px 0 var(--ink); }
+  .pad .u { top: 6px; left: 50%; translate: -50% 0; }
+  .pad .d { bottom: 6px; left: 50%; translate: -50% 0; }
+  .pad .l { left: 10px; top: 50%; translate: 0 -50%; }
+  .pad .r { right: 10px; top: 50%; translate: 0 -50%; }
+  .pad .knob { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px; border-radius: 50%; background: var(--yellow); border: 3px solid var(--ink); box-shadow: 0 4px 0 var(--ink); transition: transform 0.06s; }
+  #pad1 .knob { background: #ffb0b0; }
+  .pad[data-dir="3"] .knob { transform: translateX(-36px); }
+  .pad[data-dir="1"] .knob { transform: translateX(36px); }
+  .pad[data-dir="0"] .knob { transform: translateY(-36px); }
+  .pad[data-dir="2"] .knob { transform: translateY(36px); }
+  .pumpbtn {
+    position: absolute; width: 104px; height: 104px; border-radius: 50%; pointer-events: auto; touch-action: none;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 38px; line-height: 1;
+    background: radial-gradient(circle at 50% 35%, #8fffb0, #24b35a); border: 4px solid #fff; box-shadow: 0 6px 0 var(--ink);
+  }
+  .pumpbtn small { font: 800 12px/1 'Rubik', sans-serif; letter-spacing: 1px; margin-top: 3px; text-shadow: 0 1px 2px var(--ink); }
+  .pumpbtn.down { transform: translateY(5px) scale(0.96); box-shadow: 0 1px 0 var(--ink); }
+  #pump0 { right: max(18px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); }
+  #pump1 { display: none; }
+  .touch .budbtn { bottom: calc(max(22px, env(safe-area-inset-bottom)) + 118px); right: max(22px, env(safe-area-inset-right)); width: 84px; height: 84px; }
+  .touch .budbtn img { width: 66px; height: 66px; }
+  /* two players: each brother has his pad in his corner, his pump just above it */
+  .two #pump0 { right: auto; left: max(84px, env(safe-area-inset-left)); bottom: calc(max(16px, env(safe-area-inset-bottom)) + 160px); width: 88px; height: 88px; }
+  .two #pump1 { display: flex; right: max(30px, env(safe-area-inset-right)); bottom: calc(max(16px, env(safe-area-inset-bottom)) + 160px); width: 88px; height: 88px; }
+  .two #pump1 { background: radial-gradient(circle at 50% 35%, #ffd0d8, #e8455c); }
+  @media (max-height: 460px) {
+    .pad { width: 120px; height: 120px; }
+    .pad .knob { width: 46px; height: 46px; margin: -23px; }
+    .pad[data-dir="3"] .knob { transform: translateX(-28px); }
+    .pad[data-dir="1"] .knob { transform: translateX(28px); }
+    .pad[data-dir="0"] .knob { transform: translateY(-28px); }
+    .pad[data-dir="2"] .knob { transform: translateY(28px); }
+    .pumpbtn { width: 88px; height: 88px; font-size: 30px; }
+    .touch .budbtn { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 100px); width: 70px; height: 70px; }
+    .touch .budbtn img { width: 54px; height: 54px; }
+    .two #pump0, .two #pump1 { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 128px); width: 74px; height: 74px; }
+    .two #pump0 { left: max(86px, env(safe-area-inset-left)); }
+    .face { width: 44px; height: 44px; border-radius: 12px; }
+    .nm { font-size: 14px; }
+    .chip { font-size: 11px; padding: 3px 8px; }
+    .scores { font-size: 11px; }
+    #hearts { font-size: 15px; }
+    .mid { flex-direction: row; flex-wrap: wrap; justify-content: center; max-width: 360px; gap: 4px 8px; }
+    .ibtn { width: 30px; height: 30px; }
+    .logo .l2 { font-size: clamp(30px, min(8vw, 12vh), 96px); }
+    .touch-hint { font-size: 13px; }
+  }
+  @media (max-width: 560px) {
+    .bars { gap: 6px; }
+    .face { width: 42px; height: 42px; border-radius: 12px; }
+    .nm { font-size: 13px; }
+    .pts { display: none; }
+    .mid { min-width: 0; }
+  }
+
+  /* ---------- screens ---------- */
+  .screen {
+    position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center;
+    gap: clamp(8px, 1.8vh, 16px); padding: 16px 16px 16px 64px; text-align: center; transition: opacity 0.3s;
+    background: linear-gradient(180deg, rgba(20, 18, 40, 0.15), rgba(20, 18, 40, 0.62));
+    overflow-y: auto; justify-content: safe center;
+  }
+  .logo { transform: rotate(-4deg); line-height: 0.9; margin-bottom: 2px; }
+  .logo span { display: block; font-family: var(--display); -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill; }
+  .logo .l1 { color: #fff; font-size: clamp(18px, min(4.4vw, 5vh), 42px); text-shadow: 0 5px 0 var(--green), 0 9px 0 var(--ink); }
+  .logo .l2 { color: var(--yellow); font-size: clamp(36px, min(9.5vw, 11vh), 104px); text-shadow: 0 6px 0 var(--dirt), 0 11px 0 var(--ink), 0 18px 30px rgba(0, 0, 0, 0.35); }
+  .tag { font-size: clamp(15px, 2.3vw, 20px); font-weight: 700; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7); }
+  .btn {
+    font-family: var(--display); font-size: clamp(18px, 3.2vw, 26px); color: var(--ink);
+    background: var(--yellow); border: 4px solid var(--ink); border-radius: 20px; padding: 11px 24px;
+    box-shadow: 0 8px 0 var(--ink), 0 14px 30px rgba(0, 0, 0, 0.3); transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .btn:hover { filter: brightness(1.06); }
+  .btn:active, .btn.down { transform: translateY(6px); box-shadow: 0 2px 0 var(--ink); }
+  .btn.alt { background: var(--cyan); }
+  .btn.ghost { background: #fff; }
+  .btn.small { font-size: clamp(15px, 2.4vw, 19px); padding: 8px 18px; border-radius: 16px; box-shadow: 0 6px 0 var(--ink); }
+  .btn small { display: block; font: 800 11px/1.2 'Rubik', sans-serif; letter-spacing: 0.5px; margin-top: 3px; }
+  .btn.focus { outline: 4px solid #fff; outline-offset: 3px; }
+  .modes { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .pulse { animation: pulse 1.3s ease-in-out infinite; }
+  .levels, .heroes { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .lvl, .hero {
+    display: flex; align-items: center; gap: 8px; padding: 7px 14px 7px 10px; border-radius: 14px; text-align: left;
+    background: rgba(20, 18, 31, 0.55); border: 3px solid rgba(255, 255, 255, 0.7); transition: transform 0.12s;
+  }
+  .lvl .e { font-size: 26px; }
+  .lvl b, .hero b { display: block; font-family: var(--display); font-size: 16px; font-weight: 400; }
+  .lvl small { font-size: 11px; font-weight: 700; opacity: 0.85; }
+  .lvl[aria-checked="true"], .hero[aria-checked="true"] { background: rgba(255, 212, 0, 0.3); border-color: var(--yellow); transform: scale(1.05); box-shadow: 0 0 0 3px var(--ink); }
+  .hero img { width: 40px; height: 40px; border-radius: 10px; background: radial-gradient(circle at 50% 35%, #a5dcff, #2a7bd6); }
+  .hero[data-hero="tommy"] img { background: radial-gradient(circle at 50% 35%, #ffe2a0, #ff9f1c); }
+  .heroes .lab { font-family: var(--display); font-size: 14px; text-shadow: 0 2px 0 var(--ink); }
+  .two-on .heroes { display: none; }
+  .keys {
+    display: grid; grid-template-columns: auto auto auto; gap: 4px 16px; align-items: center; text-align: left;
+    padding: 10px 16px; border-radius: 16px; background: rgba(20, 18, 31, 0.62); border: 2px solid rgba(255, 255, 255, 0.6);
+    font-size: 13px; font-weight: 700;
+  }
+  .keys .h { font-family: var(--display); font-size: 13px; font-weight: 400; letter-spacing: 1px; }
+  .keys .h.p1 { color: #8cc2ff; }
+  .keys .h.p2 { color: #ffb0b0; }
+  kbd {
+    display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; margin: 1px;
+    font: 700 12px/1 system-ui, sans-serif; color: var(--ink); background: #fff; border-radius: 6px; box-shadow: 0 2px 0 #9aa;
+  }
+  .touch-hint { display: none; font-weight: 700; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); max-width: 560px; }
+  .touch .keys { display: none; }
+  .touch .touch-hint { display: block; }
+  .credit { position: fixed; right: max(14px, env(safe-area-inset-right)); bottom: max(10px, env(safe-area-inset-bottom)); font-size: 13px; font-weight: 700; opacity: 0.9; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); pointer-events: none; }
+  .credit b { color: #ffe2a0; }
+  @media (max-height: 520px), (orientation: portrait) and (max-width: 700px) { .credit { display: none; } }
+  @media (max-height: 560px) { .keys { display: none; } }
+  .big {
+    font-family: var(--display); font-size: clamp(40px, 8.5vw, 96px); color: var(--cyan); transform: rotate(-4deg);
+    -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill; text-shadow: 0 7px 0 var(--yellow), 0 12px 0 var(--ink);
+  }
+  #resFace { width: clamp(90px, 17vh, 150px); aspect-ratio: 1; border-radius: 24px; border: 4px solid #fff; background: radial-gradient(circle at 50% 35%, #fff3a0, #ffb02e); box-shadow: 0 6px 0 var(--ink); animation: pulse 1.2s ease-in-out infinite; }
+  #resTitle { color: var(--yellow); }
+  #results { background: linear-gradient(180deg, rgba(20, 18, 40, 0), rgba(20, 18, 40, 0.55) 40%, rgba(20, 18, 40, 0.72)); }
+  .stats { padding: 10px 18px; border-radius: 16px; background: rgba(20, 18, 31, 0.65); border: 2px solid rgba(255, 255, 255, 0.7); font-size: 15px; font-weight: 700; display: flex; flex-direction: column; gap: 4px; }
+  .stats:empty { display: none; }
+  .stats b { font-family: var(--display); font-weight: 400; color: var(--yellow); margin-right: 6px; }
+  .stats .new { color: var(--cyan); animation: pulse 0.9s ease-in-out infinite; display: inline-block; }
+  .btnrow { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .hint { font-size: 13px; font-weight: 700; opacity: 0.9; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #f6a35c; font-family: var(--display); font-size: 28px; letter-spacing: 2px; padding: 24px; text-align: center; }
+  .rotate { display: none; position: fixed; left: 50%; bottom: 14px; translate: -50% 0; padding: 8px 14px; border-radius: 999px; background: rgba(20, 18, 31, 0.75); font-weight: 800; font-size: 13px; pointer-events: none; white-space: nowrap; }
+  @media (orientation: portrait) and (max-width: 700px) { .screen:not(.hidden) ~ .rotate { display: block; } }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud" class="hidden">
+  <div class="bars">
+    <div class="pb" id="pb0">
+      <div class="face" data-i="0"><img alt=""></div>
+      <div class="col"><span class="nm">TEDDY</span><span class="pts">0</span></div>
+    </div>
+    <div class="mid">
+      <div class="toprow"><span class="chip" id="lvl">LEVEL 1</span><span class="chip" id="left">🎈 0</span></div>
+      <div id="hearts"></div>
+      <div class="scores"><span id="score">SCORE 0</span><span id="hi">HI-SCORE 0</span></div>
+      <div class="ibtns">
+        <button id="pauseBtn" class="ibtn" title="Pause (P)">❚❚</button>
+        <button class="ibtn muteBtn" title="Sound (M)">🔊</button>
+      </div>
+    </div>
+    <div class="pb right" id="pb1">
+      <div class="face" data-i="1"><img alt=""></div>
+      <div class="col"><span class="nm">TOMMY</span><span class="pts">0</span></div>
+    </div>
+  </div>
+  <div id="toasts"></div>
+  <div id="banner" class="banner"></div>
+</div>
+<button id="budBtn" class="budbtn hidden"><img alt=""><small>TOMMY</small><kbd>T</kbd></button>
+
+<div id="touch">
+  <div id="pad0" class="pad" data-dir="-1"><span class="ar u">▲</span><span class="ar d">▼</span><span class="ar l">◀</span><span class="ar r">▶</span><i class="knob"></i></div>
+  <div id="pad1" class="pad" data-dir="-1"><span class="ar u">▲</span><span class="ar d">▼</span><span class="ar l">◀</span><span class="ar r">▶</span><i class="knob"></i></div>
+  <button id="pump0" class="pumpbtn">💨<small>PUMP</small></button>
+  <button id="pump1" class="pumpbtn">💨<small>PUMP</small></button>
+</div>
+
+<div id="title" class="screen">
+  <div class="logo" data-no-lang><span class="l1">TEDDY &amp; TOMMY</span><span class="l2" id="logoMain">TT DIGGER</span></div>
+  <p class="tag" id="tagline"></p>
+  <div class="modes">
+    <button id="mode1" class="btn pulse" data-mode="1">🪏 1 PLAYER<small>call your brother to help</small></button>
+    <button id="mode2" class="btn alt" data-mode="2">👫 2 PLAYERS<small>Teddy and Tommy together</small></button>
+  </div>
+  <div class="heroes" role="radiogroup" aria-label="Hero">
+    <span class="lab">PLAY AS</span>
+    <button class="hero" data-hero="teddy" role="radio"><img alt=""><b>TEDDY</b></button>
+    <button class="hero" data-hero="tommy" role="radio"><img alt=""><b>TOMMY</b></button>
+  </div>
+  <div class="levels" role="radiogroup" aria-label="Difficulty">
+    <button class="lvl" data-level="easy" role="radio"><span class="e">🐣</span><span><b>EASY</b><small>slow critters, 3 pumps, 5 lives</small></span></button>
+    <button class="lvl" data-level="normal" role="radio"><span class="e">🔥</span><span><b>NORMAL</b><small>for big kids</small></span></button>
+  </div>
+  <div class="keys">
+    <span></span><span class="h p1">PLAYER 1</span><span class="h p2">PLAYER 2</span>
+    <span>dig</span><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd></span>
+    <span>pump (hold)</span><span><kbd>Space</kbd></span><span><kbd>Enter</kbd></span>
+    <span>call your brother</span><span><kbd>T</kbd></span><span></span>
+    <span>pause · sound</span><span><kbd>P</kbd> <kbd>M</kbd></span><span></span>
+  </div>
+  <p class="touch-hint">Hold the round pad to dig, and hold the green PUMP button to puff up a critter. Tap your brother's face to call him.</p>
+  <div class="credit">built with <b>Claude Code</b></div>
+</div>
+
+<div id="pause" class="screen hidden">
+  <div class="big">PAUSED</div>
+  <div class="btnrow">
+    <button id="resumeBtn" class="btn">▶ RESUME</button>
+    <button id="quitBtn" class="btn small ghost">MENU</button>
+  </div>
+  <p class="hint">P · Esc to resume · Q for the menu · M sound</p>
+</div>
+
+<div id="results" class="screen hidden">
+  <img id="resFace" alt="">
+  <div id="resTitle" class="big">LEVEL CLEAR!</div>
+  <p id="resSub" class="tag"></p>
+  <div id="resStats" class="stats"></div>
+  <div class="btnrow">
+    <button id="againBtn" class="btn">NEXT LEVEL ▶</button>
+    <button id="menuBtn" class="btn ghost small">MENU</button>
+  </div>
+  <p class="hint" id="resHint">Enter to go on · Esc for the menu</p>
+</div>
+
+<div id="loading">LOADING…</div>
+<div class="rotate">↻ Turn sideways for a bigger garden!</div>
+
+<script src="kit/three.min.js"></script>
+<script src="kit/gfx.js"></script>
+<script src="kit/people.js"></script>
+<script src="kit/roster.js"></script>
+<script src="kit/portraits.js"></script>
+<script src="kit/sound.js"></script>
+<script src="kit/lang.js"></script>
+<script src="kit/help.js"></script>
+<script src="js/title.js"></script>
+<script src="js/config.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/bot.js"></script>
+<script src="js/checks.js"></script>
+<script src="js/input.js"></script>
+<script src="js/sfx.js"></script>
+<script src="js/art.js"></script>
+<script src="js/game.js"></script>
+<script src="js/playcheck.js"></script>
+<script src="js/keys.js"></script>
+<script src="js/zh.js"></script>
+</body>
+</html>
