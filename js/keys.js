@@ -1,6 +1,7 @@
 /* The keys the ? panel shows. Press ? (Shift + /) in the game, or tap the round ? button.
    The panel and the freeze live in the shared kit: kit/help.js (Kit.help). */
-const KIT_TOP = 'max(calc(50% - 20px), min(calc(95vw + 90px), calc(100% - 200px)))';
+// the kit's usual spot (50% - 20px) on a sideways screen; on a tall one (the last term goes negative when wide), lower
+const KIT_TOP = 'max(calc(50% - 20px), min(calc(95vw + 90px), calc(100% - 200px), calc(50% - 20px + (100vh - 100vw) * 10)))';
 Kit.help.setup({
   title: DG.TITLE,
   cols: ['Player 1', 'Player 2'],
