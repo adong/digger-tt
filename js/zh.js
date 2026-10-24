@@ -26,7 +26,7 @@
     'NEXT LEVEL ▶': '下一关 ▶', 'PLAY AGAIN': '再玩一次', 'Enter to go on · Esc for the menu': '回车继续 · Esc 回菜单',
     'OOPS!': '哎呀！', 'out of hearts': '红心用完了', 'Out of hearts. Try again!': '红心用完了，再试一次！',
     'Every critter floated away!': '小怪都飘走啦！', SCORE: '得分', 'HI-SCORE': '最高分', 'NEW!': '新纪录！',
-    'READY!': '准备！',
+    'READY!': '准备！', 'LEVEL CLEAR!': '过关！',
     // toasts
     '🪨 FLAT AS A PANCAKE!': '🪨 压成薄饼啦！', 'BOINK! GOOD THING YOU WEAR A HARD HAT!': '咚！还好戴了安全帽！',
     '✋ HIGH FIVE! ✋': '✋ 击掌！✋',
@@ -56,5 +56,4 @@
   L.rule(new RegExp(`^${NAME} SAYS: PUMP PUMP POP!$`), '$1 说：打气打气，砰！');
   L.rule(new RegExp(`^${NAME} SAYS: ONE MORE!$`), '$1 说：再来一个！');
   L.rule(new RegExp(`^${NAME} popped the last one!$`), '$1 打飞了最后一个！');
-  L.rule(/^LEVEL (\d+)READY!$/, '第 $1 关准备！');
 })();

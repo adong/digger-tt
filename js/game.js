@@ -20,7 +20,7 @@
   // which way a boy faces for up, right, down, left: turned three-quarters toward the camera
   const FACE = [0.35, -Math.PI / 2 - 0.45, Math.PI, Math.PI / 2 + 0.45];
   const TREATS = [['🍦', 'ICE CREAM'], ['💧', 'WATER'], ['🧃', 'JUICE BOX'], ['🍪', 'COOKIE'], ['🍉', 'WATERMELON'], ['🍌', 'BANANA']];
-  const SCALE = 0.9;
+  const SCALE = 1.0;
   const nameOf = (id) => Kit.roster.get(id).name;
 
   // ---------------------------------------------------------------- saved settings
@@ -568,13 +568,13 @@
           const h = e.i >= 0 && M.players[e.i] && M.players[e.i].hose.st === 'hook' ? hoses[e.i] : hoses[2];
           h.bulgeT = 0;
           sfx('pump', e.puffs);
-          if (c && e.puffs < M.D.pumps) word(e.puffs === 1 ? 'PUFF!' : 'PUFF PUFF!', X(c.x), Y(c.y) + 1.6, { size: 0.55, fill: '#ffffff', stroke: '#4dabf7', life: 0.6 });
+          if (c && e.puffs < M.D.pumps) word(e.puffs === 1 ? 'PUFF!' : 'PUFF PUFF!', X(c.x), Y(c.y) + 1.8, { size: 0.85, fill: '#ffffff', stroke: '#4dabf7', life: 0.6 });
           break;
         }
         case 'pop': {
           const [x, y] = at(e.x, e.y);
           word('POP!', x, y + 1.2, { size: 1.1, fill: '#ffd43b', stroke: '#ff5d8f' });
-          word('+' + e.pts, x, y + 2.6, { size: 0.6, fill: '#ffffff', stroke: '#2fc27a', life: 1.3 });
+          word('+' + e.pts, x, y + 2.6, { size: 0.8, fill: '#ffffff', stroke: '#2fc27a', life: 1.3 });
           confettiAt(x, y, 30);
           starsAt(x, y, 8);
           sfx('pop');
@@ -701,7 +701,9 @@
     const portrait = h > w;
     const small = h < 460;
     const pad = small ? 120 : 150;
-    const kitTop = h / 2 - 26; // the kit's ? button sits at 50% - 20px, the A文 and speaker below it
+    const kb = document.getElementById('kit-help-btn'); // the kit's ? button, with the A文 and speaker under it
+    const kr = kb && kb.getBoundingClientRect();
+    const kitTop = kr && kr.height ? kr.top - 6 : h / 2 - 26;
     const cands = [];
     const padsTop = touch ? h - 16 - pad - 10 - (G.two ? (small ? 90 : 110) : 0) : h - 8;
     cands.push({ l: 8, r: 8, t: hud, b: Math.min(kitTop, portrait ? padsTop : h - 8) }); // above the kit buttons
@@ -904,7 +906,10 @@
   function callBuddy(i) {
     if (!G.M || G.demo || G.screen !== 'play') return false;
     Kit.sound.init();
-    return G.M.callBuddy(i);
+    const ok = G.M.callBuddy(i);
+    handleEvents(G.M); // its news (he's here, or a high five) comes between frames: show it now
+    G.M.events.length = 0;
+    return ok;
   }
 
   // ---------------------------------------------------------------- loop
